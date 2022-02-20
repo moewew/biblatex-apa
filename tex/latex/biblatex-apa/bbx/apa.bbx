@@ -460,19 +460,30 @@
 
 \DeclareFieldFormat{chapter}{\bibcpstring{chapter}~\apanum{#1}}
 
+
 % NUMBER
-\DeclareFieldFormat{number}{\iffieldundef{volume}
-                             {\ifinteger{\thefield{number}}
-                               {\addspace\mkbibemph{\bibcpstring{number}~\apanum{#1}}\adddot}
-                               {\apanum{#1}}}
-                             {\mkbibemph{\apanum{#1}}}}
-\DeclareFieldFormat[report]{number}{\apanum{#1}}
-\DeclareFieldFormat[article,periodical,inproceedings]{number}{\mkbibparens{\apanum{#1}}}
+\DeclareFieldFormat{number}{%
+  \iffieldundef{volume}
+    {\ifinteger{\thefield{number}}
+       {\addspace\mkbibemph{\bibcpstring{number}~\apanum{#1}}\adddot}
+       {\apanum{#1}}}
+    {\mkbibemph{\apanum{#1}}}}
+\DeclareFieldFormat[report,thesis,unpublished,
+  dataset,software,audio,patent,image]{number}{%
+  \ifnumerals{#1}
+    {\bibcpstring{number}~}
+    {}%
+  \apanum{#1}}
+\DeclareFieldFormat[article,periodical]{number}{\mkbibparens{\apanum{#1}}}
 \DeclareFieldFormat[reprint]{number}{\mkbibbrackets{\apanum{#1}}}
+
 \DeclareFieldFormat{legmaterialnum}{%
   \ifthenelse{%
     \iffieldequalstr{type}{report}\OR%
-    \iffieldequalstr{type}{execorder}}{\bibcpstring{number}~\apanum{#1}}{\apanum{#1}}}
+    \iffieldequalstr{type}{execorder}}
+    {\bibcpstring{number}~}
+    {}%
+  \apanum{#1}}
 
 
 % PAGES
@@ -732,36 +743,46 @@
         \setunit{\subtitlepunct}%
         \printfield[apacase]{subtitle}}}%
      \setunit{\addspace}%
-     \ifentrytype{inbook}{}{\usebibmacro{addinfo1}}% additional info in parens
+     \ifentrytype{inbook}
+       {}
+       {\usebibmacro{editor+edition+vol/pages/number}}% additional info in parens
      \setunit{\addspace}%
      \printfield{titleaddon}%
+     \ifentrytype{thesis}
+       {\setunit{\addspace}%
+        \usebibmacro{thesisinfo}}
+       {}%
      \setunit{\addspace}%
-     \usebibmacro{addinfo2}}}%
+     \usebibmacro{entrysubtype+note}}}%
 
-\newbibmacro*{addinfo1}{%
+\newbibmacro*{editor+edition+vol/pages/number}{%
   \printtexte[parens]{%
     \usebibmacro{editor+trans+narr}%
     \setunit*{\addsemicolon\addspace}%
     \printfield{edition}%
     \setunit*{\addcomma\addspace}%
-    \ifthenelse{\ifentrytype{report}\OR%
-                \ifentrytype{thesis}\OR%
-                \ifentrytype{unpublished}\OR%
-                \ifentrytype{dataset}\OR%
-                \ifentrytype{software}\OR%
-                \ifentrytype{audio}\OR%
-                \ifentrytype{patent}\OR%
-                \ifentrytype{image}}{\usebibmacro{addinfo3}}{}%
-    \setunit*{\addcomma\addspace}%
-    \ifentrytype{inbook}{\printfield{pages}}{}%
-    \setunit*{\addcomma\addspace}%
-    \ifthenelse{\ifentrytype{book}\OR\ifentrytype{inbook}}{\printfield{volumes}}{}%
-    \setunit*{\addcomma\addspace}%
-    \ifthenelse{\ifentrytype{book}\OR\ifentrytype{inbook}}{\printfield{volume}}{}}}
+    \ifentrytype{book}
+      {\printfield{volumes}
+       \setunit*{\addcomma\addspace}%
+       \printfield{volume}}
+      {\ifentrytype{inbook}
+         {\printfield{volumes}
+          \setunit*{\addcomma\addspace}%
+          \printfield{volume}%
+          \setunit*{\addcomma\addspace}%
+          \printfield{pages}}
+         {\ifthenelse{\ifentrytype{report}\OR%
+              \ifentrytype{unpublished}\OR%
+              \ifentrytype{dataset}\OR%
+              \ifentrytype{software}\OR%
+              \ifentrytype{audio}\OR%
+              \ifentrytype{patent}\OR%
+              \ifentrytype{image}}
+            {\usebibmacro{type/issue+number+version}}
+            {}}}}}
 
-% Additional post title information in brackets unless it's the meta subtype "nonacademic"
-% which is used to conditionalise date formats in the .lbx files
-\newbibmacro*{addinfo2}{%
+% Additional post title information in brackets
+\newbibmacro*{entrysubtype+note}{%
   \printtexte[brackets]{%
    \iffieldequalstr{entrysubtype}{nonacademic}
      {}
@@ -772,22 +793,35 @@
     \printfield{note}}}
 
 % number/issue information
-\newbibmacro*{addinfo3}{%
+\newbibmacro*{type/issue+number+version}{%
   \iffieldundef{type}
-    {\iffieldundef{issue}
-      {\iffieldnums{number}{\bibcpstring{number}~}{}\printfield{number}}
-      {\printfield{issue}\setunit{\addspace}%
-       \iffieldundef{number}
-         {}
-         {\iffieldnums{number}{\bibcpstring{number}~}{}\printfield{number}}}}
-    {\printfield{type}\setunit{\addspace}%
-     \iffieldundef{number}
-       {}
-       {\iffieldnums{number}{\bibcpstring{number}~}{}\printfield{number}}}%
+    {\printfield{issue}%
+     \setunit*{\addspace}%
+     \printfield{number}}
+    {\printfield{type}%
+     \setunit*{\addspace}%
+     \printfield{number}}%
   \ifthenelse{\ifentrytype{dataset}\OR\ifentrytype{software}}
     {\setunit*{\addsemicolon\addspace}%
      \printfield{version}}
     {}}
+
+\newbibmacro*{thesisinfo}{%
+  \printtext[brackets]{%
+    \printfield{type}
+    \iflistundef{publisher}
+      {% 'unpublished' thesis
+       % institution is shown later in place of publisher
+      }
+      {% 'published thesis'
+       \printlist{institution}}}}
+
+\newbibmacro*{thesispublisher}{%
+  \iflistundef{publisher}
+    {% 'unpublished' thesis
+     \printlist{institution}}
+    {% 'published thesis'
+     \printlist{publisher}}}
 
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1162,7 +1196,7 @@
           \setunit{\adddot\addspace}}}%
       \usebibmacro{booktitle}%
       \setunit{\addspace}%
-      \usebibmacro{addinfo1}}}
+      \usebibmacro{editor+edition+vol/pages/number}}}
 
 \renewbibmacro*{maintitle}{%
   \ifthenelse{\iffieldundef{maintitle}\AND\iffieldundef{mainsubtitle}}
@@ -1951,9 +1985,7 @@
   \setunit{\printdelim{nametitledelim}}\newblock
   \usebibmacro{title}%
   \newunit\newblock
-  \printlist{institution}%
-  \newunit\newblock
-  \usebibmacro{location+publisher}%
+  \usebibmacro{thesispublisher}%
   \newunit\newblock
   \usebibmacro{doi+url}%
   \newunit\newblock
